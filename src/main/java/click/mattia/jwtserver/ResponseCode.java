@@ -1,11 +1,13 @@
 package click.mattia.jwtserver;
 
 public enum ResponseCode {
-    OK(200), USER_EXISTS(400), NOT_FOUND(404), UNAUTHORIZED(403);
+    OK(200), BAD_REQUEST(400), NOT_FOUND(404), FORBIDDEN(403),
+    UNAUTHORIZED(401);
 
-    public int code;
+    public final int code;
 
-    ResponseCode(int i) {
+    ResponseCode(int code) {
+        this.code = code;
     }
 
 }

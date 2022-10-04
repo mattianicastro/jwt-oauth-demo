@@ -43,7 +43,7 @@ public class Database {
             Logger.info("Registered user {}", username);
             return new Response(ResponseCode.OK, "OK");
         } catch (SQLException e) {
-            return new Response(ResponseCode.USER_EXISTS, "user already exists");
+            return new Response(ResponseCode.BAD_REQUEST, "user already exists");
         }
 
     }
