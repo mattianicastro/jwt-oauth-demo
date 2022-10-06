@@ -1,3 +1,6 @@
 {
-  "jwtSecret": ""
+  "jwtSecret": "",
+  "clientId": "",
+  "clientSecret": "",
+  "callbackUrl": "http://localhost:4567/callback"
 }

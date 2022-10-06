@@ -4,21 +4,33 @@ import org.json.JSONObject;
 
 import java.util.Arrays;
 
-import static click.mattia.jwtserver.Utils.hashPassword;
-import static click.mattia.jwtserver.Utils.signAuthJwt;
-import static click.mattia.jwtserver.Utils.validateJwt;
+import static click.mattia.jwtserver.Config.*;
 
 
+import static click.mattia.jwtserver.Utils.*;
 import static spark.Spark.*;
 import static spark.Spark.staticFiles;
 
 public class Main {
     public static void main(String[] args) {
         Database db = new Database();
-        JSONObject config = Utils.loadConfig();
-        String jwtSecret = config.getString("jwtSecret");
 
         staticFiles.location("/frontend");
+
+        get("/github", (req, res) -> {
+            res.redirect(OauthManager.getAuthEndpoint().toString());
+            return "redirecting...";
+        });
+
+        get("/callback", (req, res) -> {
+            if(!validateStateJwt(req.queryParams("state"))) {
+                return "Invalid state";
+            }
+                var code = req.queryParams("code");
+                var accessToken = OauthManager.getAccessToken(code);
+                var user = OauthManager.getGithubUser(accessToken);
+                return user;
+        });
 
         post("/register", (req, res) -> {
             var body = new JSONObject(req.body());
@@ -37,7 +49,7 @@ public class Main {
             }
             // generate a new hash and compare it to the saved one
             var generatedHash = hashPassword(password, user.getSalt());
-            var jwt = signAuthJwt(user, jwtSecret);
+            var jwt = signAuthJwt(user);
             if(Arrays.equals(generatedHash, user.getPassword())){
                 res.cookie("jwt", jwt, 3600, true);
                 return "ok";
@@ -53,7 +65,7 @@ public class Main {
                 res.status(ResponseCode.UNAUTHORIZED.code);
                 return "unauthorized";
             }
-            var user = validateJwt(req.cookie("jwt"), jwtSecret, db);
+            var user = validateAuthJwt(req.cookie("jwt"), db);
             if(user==null) {
                 res.status(403);
                 return "unauthorized";

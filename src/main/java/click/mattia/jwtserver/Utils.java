@@ -18,6 +18,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.Date;
+import static click.mattia.jwtserver.Config.*;
 
 public class Utils {
     public static SecureRandom random = new SecureRandom();
@@ -34,21 +35,34 @@ public class Utils {
         return factory.generateSecret(spec).getEncoded();
     }
 
-    public static String signAuthJwt(User user, String jwtSecret) {
+    public static String signStateJwt() {
         Algorithm algorithm = Algorithm.HMAC256(jwtSecret);
         Calendar date = Calendar.getInstance();
         date.add(Calendar.MINUTE, 10);
         return JWT.create()
                 .withIssuedAt(new Date())
                 .withExpiresAt(date.getTime())
+                .withIssuer("oauth")
+                .sign(algorithm);
+    }
+
+    public static String signAuthJwt(User user) {
+        Algorithm algorithm = Algorithm.HMAC256(jwtSecret);
+        Calendar date = Calendar.getInstance();
+        date.add(Calendar.HOUR, 1);
+        return JWT.create()
+                .withIssuedAt(new Date())
+                .withExpiresAt(date.getTime())
+                .withIssuer("login")
                 .withClaim("username", user.getUsername())
                 .sign(algorithm);
     }
 
-    public static User validateJwt(String jwt, String jwtSecret, Database db) throws SQLException {
+    public static User validateAuthJwt(String jwt, Database db) throws SQLException {
         Algorithm algorithm = Algorithm.HMAC256(jwtSecret);
         try {
             JWTVerifier verifier = JWT.require(algorithm)
+                    .withIssuer("login")
                     .build();
             DecodedJWT token = verifier.verify(jwt);
             return db.getUserByUsername(token.getClaim("username").asString());
@@ -58,6 +72,20 @@ public class Utils {
         }
     }
 
+    public static boolean validateStateJwt(String jwt) {
+
+        Algorithm algorithm = Algorithm.HMAC256(jwtSecret);
+        try {
+            JWTVerifier verifier = JWT.require(algorithm)
+                    .withIssuer("oauth")
+                    .build();
+            DecodedJWT token = verifier.verify(jwt);
+            return true;
+        }catch(JWTVerificationException e){
+            Logger.error(e);
+            return false;
+        }
+    }
 
     public static JSONObject loadConfig() {
         InputStream is = Utils.class.getResourceAsStream("/config.json");
